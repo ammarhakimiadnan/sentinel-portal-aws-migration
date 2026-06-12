@@ -24,6 +24,7 @@ This folder contains the Infrastructure as Code (IaC) used to deploy the Sentine
 
 1. Clone this repo and navigate to the terraform folder:
 ```git clone https://github.com/ammarhakimiadnan/Sentinel_Incidents_Portal.git```
+
 ```cd Sentinel_Incidents_Portal/terraform```
 
 2. Copy the example variables file and fill in your values:
