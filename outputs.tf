@@ -8,10 +8,6 @@ output "ec2_public_ip" {
 }
 
 output "rds_endpoint" {
-  value     = aws_db_instance.postgres.endpoint
+  value     = aws_db_instance.postgres.address
   sensitive = true
-}
-
-output "cloudtrail_bucket" {
-  value = aws_s3_bucket.cloudtrail_bucket.id
 }

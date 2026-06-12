@@ -5,9 +5,11 @@ db_name     = "sentineldb"
 db_username = "sentinel_admin"
 db_password = "SentinelPass2024!"
 
-#key_name = "sentinel-key"
-
-# Replace with your ACM certificate ARN after creating it in Step 3
-acm_certificate_arn = "arn:aws:acm:us-east-1:123456789012:certificate/xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+# IMPORTANT: Generate your own key with:
+# python3 -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
+# Use the SAME key here and in your local db.py testing
+encryption_key = "REPLACE_WITH_GENERATED_FERNET_KEY"
 
 enable_multi_az = false
+enable_https    = false
+acm_certificate_arn = ""
