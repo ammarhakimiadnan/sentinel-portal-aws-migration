@@ -1,9 +1,6 @@
 # Sentinel Incident Portal — AWS Infrastructure (Terraform)
 
-CCS6344 T2610 — Assignment 2 — Group 7
-
-This folder contains the Infrastructure as Code (IaC) used to deploy the
-Sentinel Incident Portal to AWS Academy Sandbox.
+This folder contains the Infrastructure as Code (IaC) used to deploy the Sentinel Incident Portal to AWS Academy Sandbox.
 
 ## Architecture Overview
 - VPC with 2 public subnets (EC2 + ALB) and 2 private subnets (RDS)
