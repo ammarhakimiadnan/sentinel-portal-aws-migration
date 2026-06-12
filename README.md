@@ -26,12 +26,11 @@ Sentinel Incident Portal to AWS Academy Sandbox.
 ## Setup
 
 1. Clone this repo and navigate to the terraform folder:
-git clone https://github.com/ammarhakimiadnan/Sentinel_Incidents_Portal.git
-
-cd Sentinel_Incidents_Portal/terraform
+```git clone https://github.com/ammarhakimiadnan/Sentinel_Incidents_Portal.git```
+```cd Sentinel_Incidents_Portal/terraform```
 
 2. Copy the example variables file and fill in your values:
-cp terraform.tfvars.example terraform.tfvars
+```cp terraform.tfvars.example terraform.tfvars```
 Edit `terraform.tfvars` and set:
    - `acm_certificate_arn` — your ACM cert ARN
    - `db_password` — a secure password
