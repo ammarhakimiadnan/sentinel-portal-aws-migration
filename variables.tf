@@ -23,10 +23,10 @@ variable "db_password" {
   default   = "SentinelPass2024!"
 }
 
-variable "key_name" {
-  description = "EC2 SSH key pair name — create this in AWS Console first"
-  default     = "sentinel-key"
-}
+#variable "key_name" {
+#  description = "EC2 SSH key pair name — create this in AWS Console first"
+#  default     = "sentinel-key"
+#}
 
 variable "acm_certificate_arn" {
   description = "ACM certificate ARN for HTTPS listener — create in ACM console first"

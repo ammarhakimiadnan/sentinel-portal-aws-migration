@@ -231,43 +231,50 @@ resource "aws_security_group" "rds_sg" {
 # ============================================================
 # IAM Role for EC2 (Least Privilege)
 # ============================================================
-resource "aws_iam_role" "ec2_role" {
-  name = "${var.project_name}-ec2-role"
-
-  assume_role_policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [{
-      Action    = "sts:AssumeRole"
-      Effect    = "Allow"
-      Principal = { Service = "ec2.amazonaws.com" }
-    }]
-  })
-}
+#resource "aws_iam_role" "ec2_role" {
+#  name = "${var.project_name}-ec2-role"
+#
+#  assume_role_policy = jsonencode({
+#    Version = "2012-10-17"
+#    Statement = [{
+#      Action    = "sts:AssumeRole"
+#      Effect    = "Allow"
+#      Principal = { Service = "ec2.amazonaws.com" }
+#    }]
+#  })
+#}
 
 # Allow EC2 to read secrets from Secrets Manager (least privilege)
-resource "aws_iam_role_policy" "secrets_access" {
-  name = "${var.project_name}-secrets-policy"
-  role = aws_iam_role.ec2_role.id
-
-  policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [{
-      Effect   = "Allow"
-      Action   = ["secretsmanager:GetSecretValue"]
-      Resource = aws_secretsmanager_secret.db_credentials.arn
-    }]
-  })
-}
+#resource "aws_iam_role_policy" "secrets_access" {
+#  name = "${var.project_name}-secrets-policy"
+#  role = aws_iam_role.ec2_role.id
+#
+#  policy = jsonencode({
+#    Version = "2012-10-17"
+#    Statement = [{
+#      Effect   = "Allow"
+#      Action   = ["secretsmanager:GetSecretValue"]
+#      Resource = aws_secretsmanager_secret.db_credentials.arn
+#    }]
+#  })
+#}
 
 # Allow EC2 to write logs to CloudWatch
-resource "aws_iam_role_policy_attachment" "cloudwatch_agent" {
-  role       = aws_iam_role.ec2_role.name
-  policy_arn = "arn:aws:iam::aws:policy/CloudWatchAgentServerPolicy"
-}
+#resource "aws_iam_role_policy_attachment" "cloudwatch_agent" {
+#  role       = aws_iam_role.ec2_role.name
+#  policy_arn = "arn:aws:iam::aws:policy/CloudWatchAgentServerPolicy"
+#}
 
-resource "aws_iam_instance_profile" "ec2_profile" {
-  name = "${var.project_name}-ec2-profile"
-  role = aws_iam_role.ec2_role.name
+#resource "aws_iam_instance_profile" "ec2_profile" {
+#  name = "${var.project_name}-ec2-profile"
+#  role = aws_iam_role.ec2_role.name
+#}
+
+# ============================================================
+# Use pre-existing LabRole / LabInstanceProfile (Sandbox restriction)
+# ============================================================
+data "aws_iam_instance_profile" "lab_instance_profile" {
+  name = "LabInstanceProfile"
 }
 
 # ============================================================
@@ -336,8 +343,10 @@ resource "aws_instance" "app_server" {
   instance_type          = "t2.micro"
   subnet_id              = aws_subnet.public.id
   vpc_security_group_ids = [aws_security_group.ec2_sg.id]
-  iam_instance_profile   = aws_iam_instance_profile.ec2_profile.name
-  key_name               = var.key_name
+  #iam_instance_profile   = aws_iam_instance_profile.ec2_profile.name
+  #key_name               = var.key_name
+  iam_instance_profile   = data.aws_iam_instance_profile.lab_instance_profile.name
+  key_name               = "vockey"
 
   user_data = <<-EOF
     #!/bin/bash
