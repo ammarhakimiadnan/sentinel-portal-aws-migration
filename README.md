@@ -38,13 +38,13 @@ Edit `terraform.tfvars` and set:
    - `key_name` — your EC2 key pair name
 
 3. Initialize Terraform:
-terraform init
+```terraform init```
 
 4. Preview the plan:
-terraform plan
+```terraform plan```
 
 5. Deploy:
-terraform apply
+```terraform apply```
 
 Type `yes` when prompted.
 
@@ -74,9 +74,11 @@ To avoid exhausting Sandbox credits, destroy all resources after testing:
 terraform destroy
 
 ## Repository Structure
+```
 terraform/
 ├── main.tf              # All resources (VPC, EC2, RDS, ALB, WAF, IAM, CloudTrail)
 ├── variables.tf         # Input variables
 ├── outputs.tf           # ALB DNS, EC2 IP, RDS endpoint
 ├── terraform.tfvars.example
 └── README.md
+```
