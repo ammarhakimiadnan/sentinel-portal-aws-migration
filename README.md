@@ -20,6 +20,38 @@ This folder contains the Infrastructure as Code (IaC) used to deploy the Sentine
 4. An EC2 Key Pair named `sentinel-key` created in AWS Console
 5. An ACM certificate created (any domain) — copy its ARN
 
+## Step-by-Step: Deploy Sentinel Portal to AWS Sandbox
+Every New Session — Do This First
+
+1. Log into AWS Academy → Sandbox module → Sandbox Environment → Start Lab → wait for green dot
+2. Click AWS to open Console → click >_ CloudShell icon in top nav bar
+3. Run:
+   ```sh
+   curl -O https://releases.hashicorp.com/terraform/1.9.8/terraform_1.9.8_linux_amd64.zip
+   unzip terraform_1.9.8_linux_amd64.zip
+   mkdir -p ~/bin && mv terraform ~/bin/
+   export PATH=$PATH:~/bin
+   terraform -version
+   ```
+4. Clone Terraform repo:
+   ```sh
+   git clone https://github.com/ammarhakimiadnan/sentinel-portal-aws-migration.git
+   cd sentinel-portal-aws-migration/terraform
+   ```
+5. Deploy:
+   ```sh
+   terraform init
+   terraform plan
+   terraform apply
+   ```
+Type yes — wait ~10 min for RDS.
+
+6. Get outputs:
+   ```sh
+   terraform output
+   terraform output rds_endpoint
+   ```
+
 ## Setup
 
 1. Clone this repo and navigate to the terraform folder:
