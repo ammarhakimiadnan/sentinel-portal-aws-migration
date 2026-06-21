@@ -8,7 +8,7 @@ db_password = "SentinelPass2024!"
 # IMPORTANT: Generate your own key with:
 # python3 -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
 # Use the SAME key here and in your local db.py testing
-encryption_key = "REPLACE_WITH_GENERATED_FERNET_KEY"
+encryption_key = "dR2beRg1azhSVMaUzUpr8U-Z8-7VZmJDIrtMkX7P_XU="
 
 enable_multi_az = false
 enable_https    = false
