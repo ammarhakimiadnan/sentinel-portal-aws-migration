@@ -131,10 +131,24 @@ terraform destroy
 
 ## Repository Structure
 ```
-terraform/
-├── main.tf              # All resources (VPC, EC2, RDS, ALB, WAF, IAM, CloudTrail)
-├── variables.tf         # Input variables
-├── outputs.tf           # ALB DNS, EC2 IP, RDS endpoint
-├── terraform.tfvars.example
-└── README.md
+sentinel-portal-aws-migration/
+├── terraform/
+│   ├── main.tf         # All resources (VPC, EC2, RDS, ALB, WAF, IAM, CloudTrail)
+│   ├── variables.tf    # Input variables
+│   ├── outputs.tf      # ALB DNS, EC2 IP, RDS endpoint
+│   └── terraform.tfvars
+└── app/
+    ├── Login.py
+    ├── db.py
+    ├── db_setup.sql
+    ├── seed_data.sql
+    ├── requirements.txt
+    ├── security_test.sql
+    ├── .env
+    ├── pages/
+    │   ├── 01_Incidents.py
+    │   ├── 02_Admin.py
+    │   └── 03_Audit_Logs.py
+    └── .streamlit/
+        └── config.toml
 ```
