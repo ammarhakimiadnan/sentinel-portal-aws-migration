@@ -300,16 +300,20 @@ resource "aws_instance" "app_server" {
     #!/bin/bash
     yum update -y
     yum install -y python3 python3-pip git
-    pip3 install streamlit psycopg2-binary bcrypt plotly pandas cryptography boto3
+
     cd /home/ec2-user
     git clone https://github.com/ammarhakimiadnan/Sentinel_Incidents_Portal.git
     cd Sentinel_Incidents_Portal
+
+    pip3 install -r requirements.txt
+
     export DB_HOST="${aws_db_instance.postgres.address}"
     export DB_PORT=5432
     export DB_NAME="${var.db_name}"
     export DB_USER="${var.db_username}"
     export DB_PASSWORD="${var.db_password}"
     export ENCRYPTION_KEY="${var.encryption_key}"
+
     streamlit run Login.py --server.port 8501 --server.address 0.0.0.0 &
   USERDATA
 
