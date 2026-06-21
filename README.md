@@ -38,6 +38,7 @@ Every New Session — Do This First
    git clone https://github.com/ammarhakimiadnan/sentinel-portal-aws-migration.git
    cd sentinel-portal-aws-migration/terraform
    ```
+   
 5. Deploy:
    ```sh
    terraform init
@@ -75,6 +76,49 @@ Edit `terraform.tfvars` and set:
 ```terraform apply```
 
 Type `yes` when prompted.
+
+## Build Database Architecture (pgAdmin)
+
+Terraform builds the PostgreSQL server, but you must build the SentinelDB schema and seed the data before the application can function.
+
+1. Open pgAdmin 4 on your local machine.
+
+2. Right-click Servers > Register > Server...
+
+3. Name it "Sentinel AWS DB" and go to the Connection tab.
+
+4. Set the Host name/address to the rds_endpoint you copied from Step 7.
+
+5. Set the Username to postgres and Password to the db_password you set in your terraform.tfvars file. Click Save.
+
+6. Expand your new server, right-click Databases > Create > Database..., and name it exactly SentinelDB. Click Save.
+
+7. Right-click specifically on SentinelDB and select Query Tool.
+
+8. Paste the contents of db_setup.sql into the tool and click Execute (Play) to build the tables.
+
+9. Clear the Query Tool, paste the contents of seed_data.sql, and click Execute to populate the 100 random incidents and users.
+
+## Connect Application
+
+With the cloud infrastructure active and the database seeded, connect your local portal.
+
+1. Open your project in VS Code.
+
+2. Open your .env file and update the DB_HOST variable with your new rds_endpoint:
+
+ ```sh
+DB_HOST=your-new-terraform-rds-endpoint.amazonaws.com
+DB_PASSWORD=your_tfvars_password
+```
+
+3. Launch The Application:
+
+ ```sh
+py -m streamlit run Login.py
+```
+
+
 
 ## Multi-AZ Exploration Note
 This project initially attempted `enable_multi_az = true` for RDS to follow
