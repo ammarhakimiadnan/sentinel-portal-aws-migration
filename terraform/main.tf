@@ -302,8 +302,8 @@ resource "aws_instance" "app_server" {
     yum install -y python3 python3-pip git
 
     cd /home/ec2-user
-    git clone https://github.com/ammarhakimiadnan/Sentinel_Incidents_Portal.git
-    cd Sentinel_Incidents_Portal
+    git clone https://github.com/ammarhakimiadnan/sentinel-portal-aws-migration.git
+    cd sentinel-portal-aws-migration/app
 
     pip3 install -r requirements.txt
 
