@@ -1,154 +1,135 @@
-# Sentinel Incident Portal — AWS Infrastructure (Terraform)
-
-This folder contains the Infrastructure as Code (IaC) used to deploy the Sentinel Incident Portal to AWS Academy Sandbox.
+# Sentinel Incident Portal — AWS Migration (Assignment 2)
+CCS6344 T2610 — Group 7
 
 ## Architecture Overview
 - VPC with 2 public subnets (EC2 + ALB) and 2 private subnets (RDS)
-- EC2 (t2.micro) running the Streamlit app
-- RDS PostgreSQL (db.t3.micro, Single-AZ, encrypted at rest)
-- Application Load Balancer with HTTP→HTTPS redirect
-- AWS WAF (SQLi + Common Rule Sets) attached to ALB
-- IAM Role (least privilege) for EC2 to access Secrets Manager
-- AWS Secrets Manager for DB credentials
-- CloudTrail logging to an encrypted S3 bucket
+- EC2 (t2.micro, Amazon Linux 2) running the Streamlit app
+- RDS PostgreSQL 15 (db.t3.micro, Single-AZ, encrypted at rest)
+- Application Load Balancer with HTTP listener
 - CloudWatch alarm for high CPU usage
+- IAM: pre-existing LabRole/LabInstanceProfile (Sandbox restriction)
 
-## Prerequisites
-1. AWS Academy Sandbox (Learner Lab) — started and active
-2. Terraform >= 1.3.0 installed
-3. AWS CLI configured with Sandbox credentials (`aws configure`)
-4. An EC2 Key Pair named `sentinel-key` created in AWS Console
-5. An ACM certificate created (any domain) — copy its ARN
-
-## Step-by-Step: Deploy Sentinel Portal to AWS Sandbox
-Every New Session — Do This First
-
-1. Log into AWS Academy → Sandbox module → Sandbox Environment → Start Lab → wait for green dot
-2. Click AWS to open Console → click >_ CloudShell icon in top nav bar
-3. Run:
-   ```sh
-   curl -O https://releases.hashicorp.com/terraform/1.9.8/terraform_1.9.8_linux_amd64.zip
-   unzip terraform_1.9.8_linux_amd64.zip
-   mkdir -p ~/bin && mv terraform ~/bin/
-   export PATH=$PATH:~/bin
-   terraform -version
-   ```
-4. Clone Terraform repo:
-   ```sh
-   git clone https://github.com/ammarhakimiadnan/sentinel-portal-aws-migration.git
-   cd sentinel-portal-aws-migration/terraform
-   ```
-   
-5. Deploy:
-   ```sh
-   terraform init
-   terraform plan
-   terraform apply
-   ```
-Type yes — wait ~10 min for RDS.
-
-6. Get outputs:
-   ```sh
-   terraform output
-   terraform output rds_endpoint
-   ```
-
-## Setup
-
-1. Clone this repo and navigate to the terraform folder:
-```git clone https://github.com/ammarhakimiadnan/sentinel-portal-aws-migration.git```
-```cd Sentinel_Incidents_Portal/terraform```
-
-2. Copy the example variables file and fill in your values:
-```cp terraform.tfvars.example terraform.tfvars```
-Edit `terraform.tfvars` and set:
-   - `acm_certificate_arn` — your ACM cert ARN
-   - `db_password` — a secure password
-   - `key_name` — your EC2 key pair name
-
-3. Initialize Terraform:
-```terraform init```
-
-4. Preview the plan:
-```terraform plan```
-
-5. Deploy:
-```terraform apply```
-
-Type `yes` when prompted.
-
-## Build Database Architecture (pgAdmin)
-
-Terraform builds the PostgreSQL server, but you must build the SentinelDB schema and seed the data before the application can function.
-
-1. Open pgAdmin 4 on your local machine.
-2. Right-click Servers > Register > Server...
-3. Name it "Sentinel AWS DB" and go to the Connection tab.
-4. Set the Host name/address to the rds_endpoint you copied from Step 7.
-5. Set the Username to postgres and Password to the db_password you set in your terraform.tfvars file. Click Save.
-6. Expand your new server, right-click Databases > Create > Database..., and name it exactly SentinelDB. Click Save.
-7. Right-click specifically on SentinelDB and select Query Tool.
-8. Paste the contents of db_setup.sql into the tool and click Execute (Play) to build the tables.
-9. Clear the Query Tool, paste the contents of seed_data.sql, and click Execute to populate the 100 random incidents and users.
-
-## Connect Application
-
-With the cloud infrastructure active and the database seeded, connect your local portal.
-
-1. Open your project in VS Code.
-2. Open your .env file and update the DB_HOST variable with your new rds_endpoint:
-
- ```sh
-DB_HOST=your-new-terraform-rds-endpoint.amazonaws.com
-DB_PASSWORD=your_tfvars_password
-```
-3. Launch The Application:
-
- ```sh
-py -m streamlit run Login.py
-```
-
-## Multi-AZ Exploration Note
-This project initially attempted `enable_multi_az = true` for RDS to follow best practices. AWS Academy Sandbox rejected this on `db.t3.micro` due to account-level restrictions. The final configuration uses `enable_multi_az = false` (Single-AZ) with `storage_encrypted = true` and automated backups, which remains within Sandbox limits while preserving data durability. See Part E of the report for screenshots of this issue and resolution.
-
-## Accessing the App
-After `terraform apply` completes, run:
-```sh
-terraform output
-```
-
-Open `alb_dns_name` in your browser (allow 2-3 minutes for EC2 user-data to install dependencies and start Streamlit).
-
-## Security Validation
-- Port scan: `nmap <alb_dns_name>` — only 80/443 should be open
-- SQL injection test: enter `' OR '1'='1` in the login username field
-- CloudTrail: AWS Console → CloudTrail → Event history
-- Encryption check: AWS Console → RDS → your DB instance → "Encryption: Enabled"
-
-## Tearing Down
-To avoid exhausting Sandbox credits, destroy all resources after testing:
-terraform destroy
+## Sandbox Restrictions (Documented)
+The following were attempted but blocked by AWS Academy Sandbox:
+- ❌ Multi-AZ RDS — not supported on db.t3.micro in Sandbox
+- ❌ AWS Secrets Manager — CreateSecret denied by voclabs role
+- ❌ CloudTrail + S3 — GetBucketObjectLockConfiguration explicitly denied
+- ❌ Custom IAM roles — IAM is read-only in Sandbox
+- ❌ ACM/HTTPS — no domain available for certificate validation
+- ❌ AWS WAF — not in confirmed supported services list
 
 ## Repository Structure
 ```
 sentinel-portal-aws-migration/
 ├── terraform/
-│   ├── main.tf         # All resources (VPC, EC2, RDS, ALB, WAF, IAM, CloudTrail)
-│   ├── variables.tf    # Input variables
-│   ├── outputs.tf      # ALB DNS, EC2 IP, RDS endpoint
-│   └── terraform.tfvars
+│   ├── main.tf          # All AWS resources
+│   ├── variables.tf     # Input variables
+│   ├── outputs.tf       # ALB DNS, EC2 IP, RDS endpoint
+│   └── terraform.tfvars # Values (db credentials, encryption key)
 └── app/
-    ├── Login.py
-    ├── db.py
-    ├── db_setup.sql
-    ├── seed_data.sql
-    ├── requirements.txt
-    ├── security_test.sql
-    ├── .env
-    ├── pages/
-    │   ├── 01_Incidents.py
-    │   ├── 02_Admin.py
-    │   └── 03_Audit_Logs.py
-    └── .streamlit/
-        └── config.toml
+├── Login.py
+├── db.py
+├── db_setup.sql
+├── seed_data.sql
+├── requirements.txt
+├── security_test.sql
+├── styles.py
+├── pages/
+│   ├── 01_Incidents.py
+│   ├── 02_Admin.py
+│   └── 03_Audit_Logs.py
+└── .streamlit/
+   └── config.toml
 ```
+## Prerequisites
+- AWS Academy Sandbox (Learner Lab) — active session
+- No local installs needed — everything runs in CloudShell
+
+## Deployment — Every New Session
+
+### Step 1 — Start Sandbox
+1. Log into AWS Academy → Sandbox module → Sandbox Environment
+2. Click **Start Lab** → wait for green dot
+3. Click **AWS** to open Console → click `>_` CloudShell icon in top nav bar
+
+### Step 2 — Install Terraform in CloudShell
+```sh
+curl -O https://releases.hashicorp.com/terraform/1.9.8/terraform_1.9.8_linux_amd64.zip
+unzip terraform_1.9.8_linux_amd64.zip
+mkdir -p ~/bin && mv terraform ~/bin/
+export PATH=$PATH:~/bin
+terraform -version
+```
+
+### Step 3 — Clone repo and deploy
+```sh
+git clone https://github.com/ammarhakimiadnan/sentinel-portal-aws-migration.git
+cd sentinel-portal-aws-migration/terraform
+terraform init
+terraform apply
+```
+Type `yes` when prompted. RDS takes ~10 minutes.
+
+### Step 4 — Get outputs
+```sh
+terraform output
+terraform output rds_endpoint
+```
+Note the `alb_dns_name` and `rds_endpoint` for next steps.
+
+### Step 5 — Load database schema into RDS
+Run this in CloudShell (replace `<rds_endpoint>` with value from Step 4):
+```sh
+sudo yum install -y postgresql15
+psql -h <rds_endpoint> -U sentinel_admin -d sentineldb -f /dev/stdin << 'EOF'
+[paste db_setup.sql contents here]
+EOF
+```
+
+Or connect via pgAdmin on your local machine:
+1. Open pgAdmin 4
+2. Right-click Servers → Register → Server
+3. Connection tab: Host = `rds_endpoint`, Username = `sentinel_admin`, Password = `SentinelPass2024!`
+4. Note: RDS is in a private subnet — only reachable from EC2, not directly from your laptop. Use CloudShell instead.
+
+### Step 6 — Seed the database
+```sh
+psql -h <rds_endpoint> -U sentinel_admin -d sentineldb -f /dev/stdin << 'EOF'
+[paste seed_data.sql contents here]
+EOF
+```
+
+### Step 7 — Verify app is running
+1. Wait 3-5 minutes after `terraform apply` completes
+2. Go to EC2 → Target Groups → `sentinel-portal-tg` → Targets tab → check health status
+3. Open `http://<alb_dns_name>` in browser
+4. Login with: `alex / admin123`, `amy / admin123`, or `noah / admin123`
+
+## Security Validation (Part E)
+
+### Port scan
+```sh
+nmap -Pn <alb_dns_name>
+```
+Expected: only ports 80 and 443 open.
+
+### SQL injection test
+On the login page, enter `' OR '1'='1` as username — should return "User not found", not bypass auth.
+
+### RDS encryption check
+AWS Console → RDS → `sentinel-portal-db` → Configuration tab → Encryption: **Enabled**
+
+### CloudWatch alarm
+AWS Console → CloudWatch → Alarms → `sentinel-portal-high-cpu` → confirm exists
+
+## Multi-AZ Exploration Note
+We initially attempted `enable_multi_az = true`. AWS Academy Sandbox rejected this with:
+`InvalidParameterCombination: Requested DB Instance class db.t3.micro is not supported for Multi-AZ`
+Final configuration uses `enable_multi_az = false` (Single-AZ) with `storage_encrypted = true`.
+See Part E of the report for full documentation of this and other Sandbox limitations.
+
+## Tearing Down
+```sh
+terraform destroy
+```
+Run before ending your Sandbox session to cleanly remove all resources.
