@@ -7,6 +7,6 @@ db_password = "SentinelPass2024!"
 
 encryption_key = "dR2beRg1azhSVMaUzUpr8U-Z8-7VZmJDIrtMkX7P_XU="
 
-enable_multi_az = true
+enable_multi_az = false #Issue to show
 enable_https    = false
 acm_certificate_arn = ""
