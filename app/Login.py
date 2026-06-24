@@ -1,5 +1,5 @@
 import streamlit as st
-import bcrypt  # type: ignore[import]
+import bcrypt
 import time
 from db import get_connection
 from styles import load_css
