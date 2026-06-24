@@ -74,7 +74,7 @@ with left:
                 key=f"role_{uid}"
             )
             if st.button("💾 Update Role", key=f"update_{uid}",
-                         width='stretch'):
+                         use_container_width=True):
                 update_user_role(uid, role_map[new_role])
                 st.success(f"✅ {uname}'s role updated to {new_role}!")
                 st.rerun()

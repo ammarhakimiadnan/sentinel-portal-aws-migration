@@ -98,15 +98,15 @@ st.markdown("""
 bcol1, bcol2, bcol3, _ = st.columns([1, 1, 1, 5])
 with bcol1:
     if role in ['Admin', 'Analyst']:
-        if st.button("➕ New Incident", width='stretch'):
+        if st.button("➕ New Incident", use_container_width=True):
             st.session_state['show_modal'] = 'report'
 with bcol2:
     if role in ['Admin', 'Analyst']:
-        if st.button("✅ Resolve", width='stretch'):
+        if st.button("✅ Resolve", use_container_width=True):
             st.session_state['show_modal'] = 'resolve'
 with bcol3:
     if role == 'Admin':
-        if st.button("🗑️ Delete", width='stretch'):
+        if st.button("🗑️ Delete", use_container_width=True):
             st.session_state['show_modal'] = 'delete'
 
 # ── Modals ──
@@ -124,7 +124,7 @@ if st.session_state.get('show_modal') == 'report':
                                    placeholder="Describe the incident...",
                                    height=100)
         ca, cb = st.columns(2)
-        if ca.button("🚨 Submit", width='stretch'):
+        if ca.button("🚨 Submit", use_container_width=True):
             if details:
                 insert_incident(inc_type, severity, details,
                                 st.session_state['user_id'])
@@ -133,7 +133,7 @@ if st.session_state.get('show_modal') == 'report':
                 st.rerun()
             else:
                 st.warning("Please fill in the details.")
-        if cb.button("✖ Cancel", width='stretch'):
+        if cb.button("✖ Cancel", use_container_width=True):
             st.session_state['show_modal'] = None
             st.rerun()
 
@@ -145,13 +145,13 @@ if st.session_state.get('show_modal') == 'resolve':
             options = {f"#{r[0]} — {r[1]}": r[0] for r in active_ids}
             selected = st.selectbox("Select", list(options.keys()))
             ca, cb = st.columns(2)
-            if ca.button("✅ Confirm", width='stretch'):
+            if ca.button("✅ Confirm", use_container_width=True):
                 resolve_incident(options[selected],
                                  st.session_state['user_id'])
                 st.success("✅ Resolved!")
                 st.session_state['show_modal'] = None
                 st.rerun()
-            if cb.button("✖ Cancel", width='stretch'):
+            if cb.button("✖ Cancel", use_container_width=True):
                 st.session_state['show_modal'] = None
                 st.rerun()
         else:
@@ -170,7 +170,7 @@ if st.session_state.get('show_modal') == 'delete':
             selected = st.selectbox("Select", list(options.keys()))
             confirm = st.checkbox("I confirm permanent deletion")
             ca, cb = st.columns(2)
-            if ca.button("🗑️ Delete", width='stretch',
+            if ca.button("🗑️ Delete", use_container_width=True,
                          type="primary"):
                 if confirm:
                     delete_incident(options[selected],
@@ -180,7 +180,7 @@ if st.session_state.get('show_modal') == 'delete':
                     st.rerun()
                 else:
                     st.error("Please confirm first.")
-            if cb.button("✖ Cancel", width='stretch'):
+            if cb.button("✖ Cancel", use_container_width=True):
                 st.session_state['show_modal'] = None
                 st.rerun()
         else:
@@ -255,7 +255,7 @@ if time_data:
         fig.update_traces(line=dict(width=2), marker=dict(size=5))
         fig.update_layout(**CHART_LAYOUT, height=280,
                           hovermode='x unified')
-        st.plotly_chart(fig, width='stretch')
+        st.plotly_chart(fig, use_container_width=True)
     else:
         st.info("Select at least one type.")
 else:
@@ -299,7 +299,7 @@ with ch2:
         margin=dict(l=0, r=0, t=0, b=0),
         height=260
     )
-    st.plotly_chart(fig_donut, width='stretch')
+    st.plotly_chart(fig_donut, use_container_width=True)
 
 # Horizontal bar chart
 with ch3:
@@ -334,7 +334,7 @@ with ch3:
                        categoryorder='total ascending'),
         )
         fig_bar.update_traces(marker_line_width=0)
-        st.plotly_chart(fig_bar, width='stretch')
+        st.plotly_chart(fig_bar, use_container_width=True)
 
 st.markdown("<hr style='border-color:#21262D; margin:8px 0;'>",
             unsafe_allow_html=True)
