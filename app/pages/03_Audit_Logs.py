@@ -25,7 +25,7 @@ cursor = conn.cursor()
 cursor.execute("""
     SELECT
         a.AuditID,
-        ISNULL(u.Username, 'Unknown') AS Username,
+        COALESCE(u.Username, 'Unknown') AS Username,
         a.ActionType,
         a.ActionTime,
         a.Status,
@@ -150,23 +150,24 @@ if rows:
                 try:
                     conn2 = get_connection()
                     cursor2 = conn2.cursor()
-
                     if action == "INSERT_INCIDENT":
                         # Get the most recent incident by this user
                         cursor2.execute("""
-                            SELECT TOP 1 IncidentID, Type, Severity, Status, CreatedAt
+                            SELECT IncidentID, Type, Severity, Status, CreatedAt
                             FROM INCIDENTS
-                            WHERE ReporterID = ?
+                            WHERE ReporterID = %s
                             ORDER BY CreatedAt DESC
+                            LIMIT 1
                         """, (user_id,))
                     elif action in ["DELETE_INCIDENT", "RESOLVE_INCIDENT"]:
                         # Get recently modified incident
                         cursor2.execute("""
-                            SELECT TOP 1 IncidentID, Type, Severity, Status, CreatedAt
+                            SELECT IncidentID, Type, Severity, Status, CreatedAt
                             FROM INCIDENTS
-                            WHERE ReporterID = ?
+                            WHERE ReporterID = %s
                             ORDER BY CreatedAt DESC
-                        """, (user_id,))
+                            LIMIT 1
+                        """, (user_id,)) 
 
                     inc = cursor2.fetchone()
                     conn2.close()
