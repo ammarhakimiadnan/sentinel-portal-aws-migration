@@ -40,6 +40,7 @@ sentinel-portal-aws-migration/
 └── .streamlit/
 └── config.toml
 ```
+
 ## Prerequisites
 - AWS Academy Sandbox (Learner Lab) active session
 - No local installs needed — everything runs in CloudShell
@@ -75,10 +76,10 @@ Type `yes` when prompted. **Wait ~10 minutes** for RDS to finish.
 terraform output
 terraform output rds_endpoint
 ```
-Save the `alb_dns_name` and `rds_endpoint` values.
+Save the `alb_dns_name` and `rds_endpoint` values (without the `:5432` port).
 
-### Step 5 — Connect to EC2 via SSM (to load database)
-RDS is in a private subnet — connect via EC2 instead of CloudShell directly.
+### Step 5 — Connect to EC2 via SSM
+RDS is in a private subnet — must connect via EC2.
 ```sh
 aws ssm start-session --target $(aws ec2 describe-instances \
   --filters "Name=tag:Name,Values=sentinel-portal-ec2" \
@@ -96,7 +97,7 @@ amazon-linux-extras install postgresql14 -y
 ```
 
 ### Step 7 — Connect to RDS and load schema
-Replace `<rds_endpoint>` with value from Step 4 (without the `:5432` port):
+Replace `<rds_endpoint>` with value from Step 4:
 ```sh
 psql -h <rds_endpoint> -p 5432 -U sentinel_admin -d sentineldb
 ```
@@ -112,8 +113,14 @@ SELECT COUNT(*) FROM INCIDENTS;
 ```
 Expected: 5 tables, 103 incidents.
 
-### Step 8 — Start the app on EC2
-Still inside the SSM/EC2 session:
+### Step 8 — Install Python 3.8 and dependencies on EC2
+Still inside the SSM/EC2 session as root:
+```sh
+amazon-linux-extras install python3.8 -y
+pip3.8 install -r /home/ec2-user/sentinel-portal-aws-migration/app/requirements.txt
+```
+
+### Step 9 — Start the app
 ```sh
 pkill -f streamlit
 cd /home/ec2-user/sentinel-portal-aws-migration/app
@@ -127,7 +134,7 @@ export ENCRYPTION_KEY="dR2beRg1azhSVMaUzUpr8U-Z8-7VZmJDIrtMkX7P_XU="
 python3.8 -m streamlit run Login.py --server.port 8501 --server.address 0.0.0.0 &
 ```
 
-### Step 9 — Open the app
+### Step 10 — Open the app
 Wait 30 seconds then open in browser:
 ```sh
 http://<alb_dns_name>
@@ -137,59 +144,82 @@ Login credentials:
 - `amy` / `admin123` — Analyst (no delete)
 - `noah` / `admin123` — Viewer (read only)
 
-### Step 10 — Verify target group health
+### Step 11 — Verify target group health
 AWS Console → EC2 → Target Groups → `sentinel-portal-tg` → Targets tab → confirm **healthy**
+
+## If App Crashes / Session Times Out
+Re-run from Step 5. The database schema persists in RDS — no need to re-run Steps 6-8 unless it's a completely fresh Sandbox session. Just re-export env vars and restart Streamlit:
+```sh
+sudo su -
+export DB_HOST="<rds_endpoint>"
+export DB_PORT=5432
+export DB_NAME="sentineldb"
+export DB_USER="sentinel_admin"
+export DB_PASSWORD='SentinelPass2024!'
+export ENCRYPTION_KEY="dR2beRg1azhSVMaUzUpr8U-Z8-7VZmJDIrtMkX7P_XU="
+pkill -f streamlit
+cd /home/ec2-user/sentinel-portal-aws-migration/app
+python3.8 -m streamlit run Login.py --server.port 8501 --server.address 0.0.0.0 &
+```
 
 ## Security Validation (Part E)
 
 ### Test 1 — Port scan
 ```sh
+sudo yum install -y nmap
 nmap -Pn <alb_dns_name>
+nmap -Pn -p 1-1000,3306,5432,8080,8501,8443,3389 <alb_dns_name>
 ```
-Expected: only ports 80 and 443 open. Screenshot result.
+Expected: only port 80 open, 998 ports filtered. Port 443 closed (no ACM cert in Sandbox).
 
 ### Test 2 — SQL injection
-On login page enter `' OR '1'='1` as username → confirm "User not found", not bypassed. Screenshot.
+On login page enter `' OR '1'='1` as username → confirm "User not found". Screenshot.
 
-### Test 3 — Encryption in transit
-When connecting to RDS via psql, confirm SSL line:
+### Test 3 — Encryption in transit (SSL/TLS)
+Connect to RDS via psql — screenshot the SSL line:
 ```sh
-SSL connection (protocol: TLSv1.2, cipher: ECDHE-RSA-AES256-GCM-SHA384)
+SSL connection (protocol: TLSv1.2, cipher: ECDHE-RSA-AES256-GCM-SHA384, bits: 256)
 ```
-Screenshot the psql connection output.
 
 ### Test 4 — Encryption at rest
-AWS Console → RDS → `sentinel-portal-db` → Configuration tab → **Encryption: Enabled**. Screenshot.
+AWS Console → RDS → `sentinel-portal-db` → Configuration tab → **Encryption: Enabled**
 
-### Test 5 — CloudWatch alarm
-AWS Console → CloudWatch → Alarms → confirm `sentinel-portal-high-cpu` exists. Screenshot.
+### Test 5 — Python Fernet encryption
+Report a new incident → screenshot `*** ENCRYPTED ***` (Decrypt OFF) → toggle ON → screenshot plaintext.
 
-### Test 6 — Python-level encryption
-Login as alex or amy → report a new incident with details → toggle Decrypt ON → confirm details are readable. Toggle OFF → confirm `*** ENCRYPTED ***` shown. Screenshot both states.
+### Test 6 — RBAC validation
+Login as alex, amy, noah — screenshot dashboard differences showing role-based access control.
+
+### Test 7 — CloudWatch alarm
+AWS Console → CloudWatch → Alarms → `sentinel-portal-high-cpu` → screenshot.
+
+### Test 8 — Security Group rules
+AWS Console → EC2 → Security Groups → screenshot inbound rules for all 3 SGs.
+
+### Test 9 — Dynamic data masking
+Login as noah → screenshot contact number showing `XXXXXXX003`.
 
 ## Known Issues & Resolutions (Part E)
 
-| Issue | Cause | Resolution |
+| Issue | Error | Resolution |
 |---|---|---|
-| Multi-AZ RDS rejected | Sandbox account restriction | Switched to Single-AZ with encryption |
-| Secrets Manager AccessDenied | voclabs role lacks CreateSecret | Removed; credentials passed via env vars |
-| S3/CloudTrail AccessDenied | Explicit deny on GetBucketObjectLockConfiguration | Removed from Terraform; noted as limitation |
-| Custom IAM role creation failed | IAM is read-only in Sandbox | Used pre-existing LabInstanceProfile |
-| psql version conflict on CloudShell | postgresql16 already installed | Used postgresql14 via amazon-linux-extras on EC2 |
-| Streamlit `width='stretch'` error | Old Streamlit version on EC2 (Python 3.7) | Upgraded to Python 3.8, replaced with `use_container_width=True` |
-| Streamlit `st.switch_page` error | Streamlit version too old | Upgraded Streamlit via pip on Python 3.8 |
-| SSH/CloudShell can't reach RDS | RDS in private subnet (correct behavior) | Used SSM Session Manager via EC2 instead |
-
-## Multi-AZ Exploration Note
-Initially attempted `enable_multi_az = true`. Sandbox rejected with:
-`InvalidParameterCombination: Requested DB Instance class db.t3.micro is not supported for Multi-AZ`
-Final config uses `enable_multi_az = false` with `storage_encrypted = true`.
+| Multi-AZ RDS rejected | `db.t3.micro not supported for Multi-AZ` | Switched to Single-AZ with encryption |
+| Secrets Manager denied | `AccessDeniedException: secretsmanager:CreateSecret` | Used env vars instead |
+| S3/CloudTrail denied | `AccessDenied: s3:GetBucketObjectLockConfiguration` | Removed from Terraform |
+| Custom IAM role denied | `AccessDenied: iam:CreateRole` | Used pre-existing LabInstanceProfile |
+| PostgreSQL 15.7 not found | `Cannot find version 15.7 for postgres` | Changed to engine_version = "15" |
+| Streamlit width error | `TypeError: form_submit_button() unexpected argument 'width'` | Replaced with use_container_width=True |
+| Streamlit switch_page error | `AttributeError: module 'streamlit' has no attribute 'switch_page'` | Upgraded to Python 3.8 + latest Streamlit |
+| RDS not reachable from CloudShell | `psql: Connection timed out` | Used SSM Session Manager via EC2 |
+| Port 443 closed | No ACM certificate (requires domain ownership) | Documented as Sandbox limitation |
 
 ## Performance Note
 App runs on t2.micro (1 vCPU, 1GB RAM) — expect slightly slower response times compared to local development. Acceptable for assignment demo purposes.
+
+## Multi-AZ Exploration Note
+Initially attempted `enable_multi_az = true`. Sandbox rejected this on `db.t3.micro`. Final config uses `enable_multi_az = false` with `storage_encrypted = true`.
 
 ## Tearing Down
 ```sh
 terraform destroy
 ```
-## Team — Group 7
